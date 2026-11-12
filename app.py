@@ -13,6 +13,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# --- COMPATIBILITY HELPER FOR NUMPY 2.0+ ---
+def _trapezoid(y, x):
+    if hasattr(np, "trapezoid"):
+        return float(np.trapezoid(y, x))
+    return float(np.trapz(y, x))
+
 # --- 1. KNOWLEDGE BASE & VIGNETTES ---
 DRUG_KB = {
     "warfarin": {
@@ -315,14 +321,13 @@ def simulate_pk(medications, crcl):
         t_span = (0.0, 240.0)
         t_eval = np.linspace(0.0, 240.0, 100)
         
-        # Simple 1-compartment ODE simulation
         sol = solve_ivp(lambda t, y: [-ke_mod * y[0]], t_span, [info["typical_dose_mg"] / info["vd_l"]], t_eval=t_eval)
         
         c_base = info["typical_dose_mg"] / info["vd_l"] * np.exp(-ke_base * sol.t)
         c_poly = sol.y[0]
         
-        auc_base = max(1e-6, np.trapz(c_base, sol.t))
-        auc_poly = np.trapz(c_poly, sol.t)
+        auc_base = max(1e-6, _trapezoid(c_base, sol.t))
+        auc_poly = _trapezoid(c_poly, sol.t)
         auc_ratio = round(float(auc_poly / auc_base), 2)
         cmax_ratio = round(float(np.max(c_poly) / np.max(c_base)), 2)
 
@@ -359,7 +364,6 @@ st.title("💊 PharmacoTwin Digital Workstation")
 st.markdown("*Mechanistic PK ODE Simulation + Split Conformal Uncertainty & Pharmacovigilance Engine*")
 st.markdown("---")
 
-# Sidebar Controls
 st.sidebar.title("Controls")
 vignette_options = {v["title"]: v for v in CLINICAL_VIGNETTES}
 selected_vig = st.sidebar.selectbox("Load Clinical Vignette", list(vignette_options.keys()))
