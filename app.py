@@ -711,7 +711,6 @@ def query_live_fda_and_rxnorm(drug_a: str, drug_b: str) -> Dict[str, Any]:
         out["error"] = f"Live FDA/RxNorm query unavailable ({type(exc).__name__}); offline ODE & ML active."
     return out
 
-
 # --- 5. STREAMLIT WORKSTATION UI ---
 ml_engine = load_conformal_engine()
 
@@ -721,6 +720,14 @@ st.warning(
     "**Research Prototype Notice:** Combines 1-compartment PK approximations, synthetic conformal calibration benchmarks, "
     "and spontaneous openFDA FAERS reports. Not clinically validated for patient care."
 )
+
+# --- SAFE SESSION STATE INITIALIZATION ---
+v0 = CLINICAL_VIGNETTES[0]
+if "meds" not in st.session_state:
+    st.session_state["meds"] = list(v0["medications"])
+for k, val in v0["patient"].items():
+    if k not in st.session_state:
+        st.session_state[k] = val
 
 # Sidebar Controls
 st.sidebar.header("1. Clinical Vignettes")
@@ -733,23 +740,17 @@ if st.sidebar.button("Apply Vignette", use_container_width=True):
     st.session_state["meds"] = list(v["medications"])
     st.rerun()
 
-if "meds" not in st.session_state:
-    v0 = CLINICAL_VIGNETTES[0]
-    for k, val in v0["patient"].items():
-        st.session_state[k] = val
-    st.session_state["meds"] = list(v0["medications"])
-
 st.sidebar.header("2. Patient Physiology")
-age = st.sidebar.number_input("Age (years)", 1, 120, int(st.session_state["age"]))
-sex = st.sidebar.selectbox("Sex", ["female", "male"], index=0 if st.session_state["sex"] == "female" else 1)
-weight = st.sidebar.number_input("Weight (kg)", 15.0, 300.0, float(st.session_state["weight_kg"]))
-scr = st.sidebar.number_input("Serum Creatinine (mg/dL)", 0.2, 15.0, float(st.session_state["scr_mg_dl"]), step=0.1)
-potassium = st.sidebar.number_input("Serum K+ (mEq/L)", 1.5, 7.5, float(st.session_state["potassium_meq_l"]), step=0.1)
-qtc = st.sidebar.number_input("Baseline QTc (ms)", 280.0, 700.0, float(st.session_state["baseline_qtc_ms"]))
+age = st.sidebar.number_input("Age (years)", 1, 120, int(st.session_state.get("age", 74)))
+sex = st.sidebar.selectbox("Sex", ["female", "male"], index=0 if st.session_state.get("sex", "female") == "female" else 1)
+weight = st.sidebar.number_input("Weight (kg)", 15.0, 300.0, float(st.session_state.get("weight_kg", 62.0)))
+scr = st.sidebar.number_input("Serum Creatinine (mg/dL)", 0.2, 15.0, float(st.session_state.get("scr_mg_dl", 1.4)), step=0.1)
+potassium = st.sidebar.number_input("Serum K+ (mEq/L)", 1.5, 7.5, float(st.session_state.get("potassium_meq_l", 3.3)), step=0.1)
+qtc = st.sidebar.number_input("Baseline QTc (ms)", 280.0, 700.0, float(st.session_state.get("baseline_qtc_ms", 458.0)))
 c1, c2, c3 = st.sidebar.columns(3)
-hf = c1.checkbox("HF", value=bool(st.session_state["heart_failure"]))
-mi = c2.checkbox("AMI", value=bool(st.session_state["acute_mi"]))
-sepsis = c3.checkbox("Sepsis", value=bool(st.session_state["sepsis"]))
+hf = c1.checkbox("HF", value=bool(st.session_state.get("heart_failure", True)))
+mi = c2.checkbox("AMI", value=bool(st.session_state.get("acute_mi", False)))
+sepsis = c3.checkbox("Sepsis", value=bool(st.session_state.get("sepsis", False)))
 
 st.sidebar.header("3. Medications")
 add_med = st.sidebar.selectbox("Add Drug", [""] + sorted(DRUG_KB.keys()))
@@ -915,3 +916,6 @@ st.download_button(
     file_name=f"pharmacotwin-dossier-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json",
     mime="application/json",
 )
+
+
+       
