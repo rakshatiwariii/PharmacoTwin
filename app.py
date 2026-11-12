@@ -21,7 +21,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-
 def _trapezoid(y: np.ndarray, x: np.ndarray) -> float:
     if hasattr(np, "trapezoid"):
         return float(np.trapezoid(y, x))
@@ -711,6 +710,7 @@ def query_live_fda_and_rxnorm(drug_a: str, drug_b: str) -> Dict[str, Any]:
         out["error"] = f"Live FDA/RxNorm query unavailable ({type(exc).__name__}); offline ODE & ML active."
     return out
 
+
 # --- 5. STREAMLIT WORKSTATION UI ---
 ml_engine = load_conformal_engine()
 
@@ -916,6 +916,3 @@ st.download_button(
     file_name=f"pharmacotwin-dossier-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json",
     mime="application/json",
 )
-
-
-       
